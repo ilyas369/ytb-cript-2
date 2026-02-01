@@ -27,7 +27,16 @@ A simple Python script that fetches YouTube video transcripts and stores them in
      ```sql
      CREATE DATABASE youtube_transcripts;
      ```
-   - Update database credentials in `fetch_transcripts.py` if needed (default: user=postgres, password=postgres, host=localhost, port=5432)
+   - Configure database credentials (optional):
+     - By default, the script uses: user=postgres, password=postgres, host=localhost, port=5432
+     - You can override these using environment variables:
+       ```bash
+       export DB_NAME=youtube_transcripts
+       export DB_USER=postgres
+       export DB_PASSWORD=your_password
+       export DB_HOST=localhost
+       export DB_PORT=5432
+       ```
 
 3. **Configure video IDs:**
    - Edit `video_ids.json` and add the YouTube video IDs you want to fetch transcripts for:

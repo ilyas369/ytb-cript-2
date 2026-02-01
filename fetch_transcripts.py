@@ -5,8 +5,11 @@ Fetches transcripts for YouTube videos and stores them in PostgreSQL database.
 """
 
 import json
+import os
 import psycopg2
+from psycopg2 import OperationalError, DatabaseError
 from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound, VideoUnavailable
 
 
 def load_video_ids(json_file='video_ids.json'):
@@ -34,6 +37,15 @@ def fetch_transcript(video_id):
         # Combine all text segments into a single transcript
         transcript = ' '.join([entry['text'] for entry in transcript_list])
         return transcript
+    except TranscriptsDisabled:
+        print(f"Error: Transcripts are disabled for video {video_id}")
+        return None
+    except NoTranscriptFound:
+        print(f"Error: No English transcript found for video {video_id}")
+        return None
+    except VideoUnavailable:
+        print(f"Error: Video {video_id} is unavailable")
+        return None
     except Exception as e:
         print(f"Error fetching transcript for {video_id}: {e}")
         return None
@@ -47,22 +59,21 @@ def store_transcript(cursor, video_id, transcript):
             (video_id, transcript)
         )
         return True
-    except Exception as e:
-        print(f"Error storing transcript for {video_id}: {e}")
+    except DatabaseError as e:
+        print(f"Database error storing transcript for {video_id}: {e}")
         return False
 
 
 def main():
     """Main function to orchestrate transcript fetching and storage."""
     # Database connection parameters
-    # These should be configured in environment variables or a config file
-    # For simplicity, using defaults that work with local PostgreSQL
+    # Can be configured via environment variables or uses defaults
     db_params = {
-        'dbname': 'youtube_transcripts',
-        'user': 'postgres',
-        'password': 'postgres',
-        'host': 'localhost',
-        'port': '5432'
+        'dbname': os.environ.get('DB_NAME', 'youtube_transcripts'),
+        'user': os.environ.get('DB_USER', 'postgres'),
+        'password': os.environ.get('DB_PASSWORD', 'postgres'),
+        'host': os.environ.get('DB_HOST', 'localhost'),
+        'port': os.environ.get('DB_PORT', '5432')
     }
     
     print("Starting YouTube Transcript Fetcher...")
@@ -78,7 +89,7 @@ def main():
         conn = psycopg2.connect(**db_params)
         cursor = conn.cursor()
         print("Connected successfully")
-    except Exception as e:
+    except OperationalError as e:
         print(f"Failed to connect to database: {e}")
         print("Please ensure PostgreSQL is running and the database exists")
         return
